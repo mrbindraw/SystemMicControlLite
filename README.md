@@ -12,3 +12,6 @@ This plugin can get the default microphone device name and change volume in the 
 You can install it from the unreal marketplace [SystemMicControlLite](https://www.unrealengine.com/marketplace/en-US/product/system-mic-control-lite)  
 You can install manually by extracting SystemMicControlLite-X.X.X-marketplace-win64-ueX.XX.zip from [Releases](https://github.com/mrbindraw/SystemMicControlLite/releases)  
 to your project plugins folder.
+
+# Example project  
+[DemoSysMicControlLite](https://drive.google.com/drive/folders/1Ww4Nbb8jy67cO08OQvnSCoec_BDWIiKp?usp=sharing)
