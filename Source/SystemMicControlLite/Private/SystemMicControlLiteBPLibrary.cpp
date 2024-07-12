@@ -23,3 +23,8 @@ float USystemMicControlLiteBPLibrary::GetMicVolume()
 {
 	return FSystemMicLiteManager::Get()->GetVolume();
 }
+
+TMap<FString, FString> USystemMicControlLiteBPLibrary::GetMicActiveDevices()
+{
+	return FSystemMicLiteManager::Get()->GetActiveDevices();
+}

@@ -19,5 +19,8 @@ class USystemMicControlLiteBPLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Volume")
 	static float GetMicVolume();
+	
+	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Active Devices")
+	static TMap<FString, FString> GetMicActiveDevices();
 
 };
