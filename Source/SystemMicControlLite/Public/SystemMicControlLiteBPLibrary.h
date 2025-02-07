@@ -7,7 +7,7 @@
 #include "SystemMicControlLiteBPLibrary.generated.h"
 
 UCLASS()
-class USystemMicControlLiteBPLibrary : public UBlueprintFunctionLibrary
+class SYSTEMMICCONTROLLITE_API USystemMicControlLiteBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
