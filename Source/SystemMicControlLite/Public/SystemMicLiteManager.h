@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 
+#if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include <mmdeviceapi.h>
 #include <endpointvolume.h>
@@ -13,6 +14,7 @@
 #include <ksmedia.h>
 #include "PolicyConfig.h"
 #include "Windows/HideWindowsPlatformTypes.h"
+#endif
 
 class FSystemMicLiteManager
 {
@@ -22,6 +24,7 @@ class FSystemMicLiteManager
 		
 		static FSystemMicLiteManager *Instance;
 
+#if PLATFORM_WINDOWS
 		IAudioEndpointVolume    *AudioEndpointVolume;
 		IMMDevice               *DefaultDevice;
 		IMMDeviceEnumerator     *DeviceEnumerator;
@@ -30,6 +33,7 @@ class FSystemMicLiteManager
 
 		IPolicyConfigVista      *PolicyConfigVista;
 		IPolicyConfig           *PolicyConfig;
+#endif
 
 	public:
 		static FSystemMicLiteManager *Get();

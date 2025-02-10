@@ -4,15 +4,18 @@
 
 FSystemMicLiteManager *FSystemMicLiteManager::Instance = nullptr;
 
-FSystemMicLiteManager::FSystemMicLiteManager() : 
-	AudioEndpointVolume(nullptr),
+FSystemMicLiteManager::FSystemMicLiteManager() 
+#if PLATFORM_WINDOWS
+: AudioEndpointVolume(nullptr),
 	DefaultDevice(nullptr),
 	DeviceEnumerator(nullptr),
 	DevicesCollection(nullptr),
 	PropertyStore(nullptr),
 	PolicyConfigVista(nullptr),
 	PolicyConfig(nullptr)
+#endif
 {
+#if PLATFORM_WINDOWS
 	FWindowsPlatformMisc::CoInitialize();
 
 	CoCreateInstance(__uuidof(CPolicyConfigVistaClient), nullptr, CLSCTX_ALL, __uuidof(IPolicyConfigVista), (LPVOID *)&PolicyConfigVista);
@@ -31,6 +34,7 @@ FSystemMicLiteManager::FSystemMicLiteManager() :
 	}
 
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID *)&DeviceEnumerator);
+#endif
 }
 
 FSystemMicLiteManager *FSystemMicLiteManager::Get()
@@ -45,7 +49,9 @@ FSystemMicLiteManager *FSystemMicLiteManager::Get()
 
 FSystemMicLiteManager::~FSystemMicLiteManager()
 {
+#if PLATFORM_WINDOWS
 	FWindowsPlatformMisc::CoUninitialize();
+#endif
 }
 
 void FSystemMicLiteManager::DestroyInstance()
@@ -64,6 +70,9 @@ FString FSystemMicLiteManager::GetDefaultDeviceName()
 
 FString FSystemMicLiteManager::GetDefaultDeviceId()
 {
+	FString DeviceIdStr;
+
+#if PLATFORM_WINDOWS
 	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
 	if (Result != S_OK)
 	{
@@ -84,8 +93,10 @@ FString FSystemMicLiteManager::GetDefaultDeviceId()
 	{
 		return FString(TEXT(""));
 	}
+	DeviceIdStr = FString(WCHAR_TO_TCHAR(swDeviceId));
+#endif
 
-	return FString(WCHAR_TO_TCHAR(swDeviceId));
+	return DeviceIdStr;
 }
 
 FString FSystemMicLiteManager::GetDeviceNameFromId(const FString &DeviceId)
@@ -107,6 +118,7 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 {
 	TMap<FString, FString> ActiveDevices;
 
+#if PLATFORM_WINDOWS
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/dd371400(v=vs.85).aspx, see Return value!
 	HRESULT Result = DeviceEnumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &DevicesCollection);
 	if (Result != S_OK)
@@ -152,6 +164,7 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 		DevicesCollection->Release();
 		DevicesCollection = nullptr;
 	}
+#endif
 
 	return ActiveDevices;
 }
@@ -160,7 +173,8 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 void FSystemMicLiteManager::SetVolume(float Value)
 {
 	float MicVolume = this->GetScalarFromValue(Value);
-	
+
+#if PLATFORM_WINDOWS
 	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
 	if (Result != S_OK)
 	{
@@ -190,10 +204,14 @@ void FSystemMicLiteManager::SetVolume(float Value)
 		DefaultDevice->Release();
 		DefaultDevice = nullptr;
 	}
+#endif
 }
 
 float FSystemMicLiteManager::GetVolume()
 {
+	float MicVolume = 0.0f;
+
+#if PLATFORM_WINDOWS
 	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
 	if (Result != S_OK)
 	{
@@ -206,7 +224,6 @@ float FSystemMicLiteManager::GetVolume()
 		return 0.0f;
 	}
 
-	float MicVolume = 0.0f;
 	Result = AudioEndpointVolume->GetMasterVolumeLevelScalar(&MicVolume);
 	if (Result != S_OK)
 	{
@@ -224,6 +241,7 @@ float FSystemMicLiteManager::GetVolume()
 		DefaultDevice->Release();
 		DefaultDevice = nullptr;
 	}
+#endif
 
 	return GetValueFromScalar(MicVolume);
 }
