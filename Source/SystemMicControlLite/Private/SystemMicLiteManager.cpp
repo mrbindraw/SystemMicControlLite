@@ -244,6 +244,7 @@ float FSystemMicLiteManager::GetValueFromScalar(float Value)
 	return FMath::RoundToFloat(FMath::Abs(Value) > 0.0f ? Value * 100.0f : 0.0f);
 }
 
+#if PLATFORM_WINDOWS
 TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId)
 {
 	TComPtr<IMMDevice> Device;
@@ -305,3 +306,4 @@ TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(cons
 
 	return AudioEndpointVolume;
 }
+#endif // PLATFORM_WINDOWS
