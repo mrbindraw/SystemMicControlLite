@@ -2,42 +2,45 @@
 
 #include "SystemMicLiteManager.h"
 
-FSystemMicLiteManager *FSystemMicLiteManager::Instance = nullptr;
+DEFINE_LOG_CATEGORY(LogSystemMicLiteManager);
+
+FSystemMicLiteManager* FSystemMicLiteManager::Instance = nullptr;
 
 FSystemMicLiteManager::FSystemMicLiteManager() 
 #if PLATFORM_WINDOWS
-: AudioEndpointVolume(nullptr),
-	DefaultDevice(nullptr),
-	DeviceEnumerator(nullptr),
-	DevicesCollection(nullptr),
-	PropertyStore(nullptr),
-	PolicyConfigVista(nullptr),
-	PolicyConfig(nullptr)
+: PolicyConfigVista(nullptr),
+	PolicyConfig(nullptr),
+	DeviceEnumerator(nullptr)
 #endif
+{
+
+}
+
+void FSystemMicLiteManager::Init()
 {
 #if PLATFORM_WINDOWS
 	FWindowsPlatformMisc::CoInitialize();
 
-	CoCreateInstance(__uuidof(CPolicyConfigVistaClient), nullptr, CLSCTX_ALL, __uuidof(IPolicyConfigVista), (LPVOID *)&PolicyConfigVista);
+	CoCreateInstance(__uuidof(CPolicyConfigVistaClient), nullptr, CLSCTX_ALL, __uuidof(IPolicyConfigVista), (LPVOID*)&PolicyConfigVista);
 
 	// For Win10
-	HRESULT Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig2, (LPVOID *)&PolicyConfig);
+	HRESULT Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig2, (LPVOID*)&PolicyConfig);
 	if (Result != S_OK)
 	{
-		Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig1, (LPVOID *)&PolicyConfig);
+		Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig1, (LPVOID*)&PolicyConfig);
 	}
 
 	// For Win Vista, 7, 8, 8.1
 	if (Result != S_OK)
 	{
-		Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig0, (LPVOID *)&PolicyConfig);
+		Result = CoCreateInstance(__uuidof(CPolicyConfigClient), NULL, CLSCTX_INPROC, IID_IPolicyConfig0, (LPVOID*)&PolicyConfig);
 	}
 
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID *)&DeviceEnumerator);
+	CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID*)&DeviceEnumerator);
 #endif
 }
 
-FSystemMicLiteManager *FSystemMicLiteManager::Get()
+FSystemMicLiteManager* FSystemMicLiteManager::Get()
 {
 	if(Instance == nullptr)
 	{
@@ -73,41 +76,61 @@ FString FSystemMicLiteManager::GetDefaultDeviceId()
 	FString DeviceIdStr;
 
 #if PLATFORM_WINDOWS
-	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
-	if (Result != S_OK)
+	TComPtr<IMMDevice> Device = GetDevice();
+	if (!Device.IsValid())
 	{
 		return FString(TEXT(""));
 	}
 
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/dd371405(v=vs.85).aspx, see Return value!
-	Result = DefaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (PVOID *)&AudioEndpointVolume);
-	if (Result != S_OK)
+	TComPtr<IAudioEndpointVolume> AudioEndpointVolume = GetAudioEndpointVolume(Device);
+	if (!AudioEndpointVolume.IsValid())
 	{
 		return FString(TEXT(""));
 	}
 
-	//WCHAR* swDeviceId = reinterpret_cast<wchar_t *>(TCHAR_TO_UTF8(*FString(TEXT(""))));
 	WCHAR* swDeviceId = TCHAR_TO_WCHAR(TEXT(""));
-	Result = DefaultDevice->GetId(&swDeviceId);
+	HRESULT Result = Device->GetId(&swDeviceId);
 	if (Result != S_OK)
 	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, Device->GetId, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
 		return FString(TEXT(""));
 	}
 	DeviceIdStr = FString(WCHAR_TO_TCHAR(swDeviceId));
+
+	CoTaskMemFree(swDeviceId);
+	swDeviceId = nullptr;
 #endif
 
 	return DeviceIdStr;
 }
 
-FString FSystemMicLiteManager::GetDeviceNameFromId(const FString &DeviceId)
+FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName)
+{
+	FString DeviceId;
+
+	for (const TPair<FString, FString>& Device : GetActiveDevices())
+	{
+		if (Device.Value == DeviceName)
+		{
+			DeviceId = Device.Key;
+			break;
+		}
+	}
+
+	return DeviceId;
+}
+
+FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId)
 {
 	FString DeviceName;
 
-	for (TPair<FString, FString>& Device : GetActiveDevices())
+	for (const TPair<FString, FString>& Device : GetActiveDevices())
 	{
 		if (Device.Key == DeviceId)
 		{
 			DeviceName = Device.Value;
+			break;
 		}
 	}
 
@@ -119,22 +142,32 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 	TMap<FString, FString> ActiveDevices;
 
 #if PLATFORM_WINDOWS
+	TComPtr<IMMDeviceCollection> DevicesCollection;
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/dd371400(v=vs.85).aspx, see Return value!
 	HRESULT Result = DeviceEnumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &DevicesCollection);
 	if (Result != S_OK)
 	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, DeviceEnumerator->EnumAudioEndpoints, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
 		return TMap<FString, FString>();
 	}
 
 	UINT CountActiveDevices = 0;
-	DevicesCollection->GetCount(&CountActiveDevices);
+	Result = DevicesCollection->GetCount(&CountActiveDevices);
+	if (Result != S_OK)
+	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, DevicesCollection->GetCount, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
+		return TMap<FString, FString>();
+	}
+
+	TComPtr<IMMDevice> Device;
+	TComPtr<IPropertyStore> PropertyStore;
 	LPWSTR pwszID = nullptr;
 
 	for (UINT i = 0; i < CountActiveDevices; i++)
 	{
-		DevicesCollection->Item(i, &DefaultDevice);
-		DefaultDevice->GetId(&pwszID);
-		DefaultDevice->OpenPropertyStore(STGM_READ, &PropertyStore);
+		DevicesCollection->Item(i, &Device);
+		Device->GetId(&pwszID);
+		Device->OpenPropertyStore(STGM_READ, &PropertyStore);
 
 		PROPVARIANT nameDevice;
 		PropVariantInit(&nameDevice);
@@ -143,26 +176,10 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 		ActiveDevices.Add(FString(WCHAR_TO_TCHAR(pwszID)));
 		ActiveDevices[FString(WCHAR_TO_TCHAR(pwszID))] = FString(WCHAR_TO_TCHAR(nameDevice.pwszVal));
 
+		PropVariantClear(&nameDevice);
+
 		CoTaskMemFree(pwszID);
 		pwszID = nullptr;
-	}
-
-	if (PropertyStore)
-	{
-		PropertyStore->Release();
-		PropertyStore = nullptr;
-	}
-
-	if (DefaultDevice)
-	{
-		DefaultDevice->Release();
-		DefaultDevice = nullptr;
-	}
-
-	if (DevicesCollection)
-	{
-		DevicesCollection->Release();
-		DevicesCollection = nullptr;
 	}
 #endif
 
@@ -170,76 +187,47 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 }
 
 
-void FSystemMicLiteManager::SetVolume(float Value)
+void FSystemMicLiteManager::SetVolume(float Value, const FString& DeviceId)
 {
-	float MicVolume = this->GetScalarFromValue(Value);
+	if (FMath::IsNearlyEqual(Value, GetVolume(DeviceId), 0.001f))
+	{
+		return;
+	}
+
+	float MicVolume = GetScalarFromValue(Value);
 
 #if PLATFORM_WINDOWS
-	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
-	if (Result != S_OK)
+	TComPtr<IAudioEndpointVolume> AudioEndpointVolume = GetAudioEndpointVolume(DeviceId);
+	if (!AudioEndpointVolume.IsValid())
 	{
 		return;
 	}
 
-	Result = DefaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (PVOID *)&AudioEndpointVolume);
+	HRESULT Result = AudioEndpointVolume->SetMasterVolumeLevelScalar(MicVolume, nullptr);
 	if (Result != S_OK)
 	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, AudioEndpointVolume->SetMasterVolumeLevelScalar, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
 		return;
-	}
-
-	Result = AudioEndpointVolume->SetMasterVolumeLevelScalar(MicVolume, nullptr);
-	if (Result != S_OK)
-	{
-		return;
-	}
-
-	if (AudioEndpointVolume)
-	{
-		AudioEndpointVolume->Release();
-		AudioEndpointVolume = nullptr;
-	}
-
-	if (DefaultDevice)
-	{
-		DefaultDevice->Release();
-		DefaultDevice = nullptr;
 	}
 #endif
 }
 
-float FSystemMicLiteManager::GetVolume()
+float FSystemMicLiteManager::GetVolume(const FString& DeviceId)
 {
 	float MicVolume = 0.0f;
 
 #if PLATFORM_WINDOWS
-	HRESULT Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &DefaultDevice);
-	if (Result != S_OK)
+	TComPtr<IAudioEndpointVolume> AudioEndpointVolume = GetAudioEndpointVolume(DeviceId);
+	if (!AudioEndpointVolume.IsValid())
 	{
 		return 0.0f;
 	}
 
-	Result = DefaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (PVOID *)&AudioEndpointVolume);
+	HRESULT Result = AudioEndpointVolume->GetMasterVolumeLevelScalar(&MicVolume);
 	if (Result != S_OK)
 	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, AudioEndpointVolume->GetMasterVolumeLevelScalar, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
 		return 0.0f;
-	}
-
-	Result = AudioEndpointVolume->GetMasterVolumeLevelScalar(&MicVolume);
-	if (Result != S_OK)
-	{
-		return 0.0f;
-	}
-
-	if (AudioEndpointVolume)
-	{
-		AudioEndpointVolume->Release();
-		AudioEndpointVolume = nullptr;
-	}
-
-	if (DefaultDevice)
-	{
-		DefaultDevice->Release();
-		DefaultDevice = nullptr;
 	}
 #endif
 
@@ -254,4 +242,66 @@ float FSystemMicLiteManager::GetScalarFromValue(int32 Value)
 float FSystemMicLiteManager::GetValueFromScalar(float Value)
 {
 	return FMath::RoundToFloat(FMath::Abs(Value) > 0.0f ? Value * 100.0f : 0.0f);
+}
+
+TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId)
+{
+	TComPtr<IMMDevice> Device;
+	HRESULT Result = S_OK;
+
+	if (DeviceId.IsEmpty())
+	{
+		Result = DeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &Device);
+		if (Result != S_OK)
+		{
+			UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, DeviceEnumerator->GetDefaultAudioEndpoint, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
+			return nullptr;
+		}
+	}
+	else
+	{
+		Result = DeviceEnumerator->GetDevice(TCHAR_TO_WCHAR(*DeviceId), &Device);
+		if (Result != S_OK)
+		{
+			UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, DeviceEnumerator->GetDevice, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
+			return nullptr;
+		}
+	}
+
+	return Device;
+}
+
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device)
+{
+	if (!Device.IsValid())
+	{
+		return nullptr;
+	}
+
+	TComPtr<IAudioEndpointVolume> AudioEndpointVolume;
+	HRESULT Result = Device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (PVOID*)&AudioEndpointVolume);
+	if (Result != S_OK)
+	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, Device->Activate, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
+		return nullptr;
+	}
+
+	return AudioEndpointVolume;
+}
+
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const FString& DeviceId)
+{
+	TComPtr<IMMDevice> Device = GetDevice(DeviceId);
+	if (!Device.IsValid())
+	{
+		return nullptr;
+	}
+
+	TComPtr<IAudioEndpointVolume> AudioEndpointVolume = GetAudioEndpointVolume(Device);
+	if (!AudioEndpointVolume.IsValid())
+	{
+		return nullptr;
+	}
+
+	return AudioEndpointVolume;
 }
