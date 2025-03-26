@@ -8,7 +8,7 @@ public class SystemMicControlLite : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		bEnableUndefinedIdentifierWarnings = false;
+		//bEnableUndefinedIdentifierWarnings = false;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
