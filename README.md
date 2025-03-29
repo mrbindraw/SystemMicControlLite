@@ -3,14 +3,14 @@ This is a free version of the plugin [SystemMicControl](https://www.fab.com/list
 This plugin can get the default microphone device name and change the microphone volume in the system. 
 
 **C++ / Blueprints functions:**
-- GetMicDefaultDeviceName / GetSystemMicDefaultDeviceName ( );
+- FString GetMicDefaultDeviceName / GetSystemMicDefaultDeviceName ( );
 - GetMicDeviceIdFromName / GetSystemMicDeviceIdFromName (const FString& InDeviceName, FString& OutDeviceId);
 - GetMicDeviceNameFromId / GetSystemMicDeviceNameFromId (const FString& InDeviceId, FString& OutDeviceName);
 - SetMicVolume / SetSystemMicVolume (float Value);
 - SetMicVolumeForDeviceId / SetSystemMicVolumeForDeviceId (const FString& DeviceId, float Volume);
-- float GetMicVolume / float GetSystemMicVolume ( );
-- float GetMicVolumeForDeviceId / float GetSystemMicVolumeForDeviceId (const FString& DeviceId);
-- TMap<FString, FString> GetMicActiveDevices / TMap<FString, FString> GetSystemMicActiveDevices ( );
+- float GetMicVolume / GetSystemMicVolume ( );
+- float GetMicVolumeForDeviceId / GetSystemMicVolumeForDeviceId (const FString& DeviceId);
+- TMap<FString, FString> GetMicActiveDevices / GetSystemMicActiveDevices ( );
 
 # Install into Project
 You can install manually by extracting archive `SystemMicControlLite-X.X.X-UE-X.X.zip` from 
