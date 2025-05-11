@@ -159,12 +159,12 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 		return TMap<FString, FString>();
 	}
 
-	TComPtr<IMMDevice> Device;
-	TComPtr<IPropertyStore> PropertyStore;
-	LPWSTR pwszID = nullptr;
-
 	for (UINT i = 0; i < CountActiveDevices; i++)
 	{
+		TComPtr<IMMDevice> Device;
+		TComPtr<IPropertyStore> PropertyStore;
+		LPWSTR pwszID = nullptr;
+		
 		DevicesCollection->Item(i, &Device);
 		Device->GetId(&pwszID);
 		Device->OpenPropertyStore(STGM_READ, &PropertyStore);
