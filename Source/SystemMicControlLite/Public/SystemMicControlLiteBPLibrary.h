@@ -27,7 +27,7 @@ public:
 	static void SetMicVolume(float Value);
 
 	/** If DeviceId is empty then it will set Volume value to the default device microphone in the system */
-	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Set System Mic Volume For DeviceId")
+	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Set System Mic Volume For Device Id")
 	static void SetMicVolumeForDeviceId(const FString& DeviceId, float Volume);
 
 	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Volume")
