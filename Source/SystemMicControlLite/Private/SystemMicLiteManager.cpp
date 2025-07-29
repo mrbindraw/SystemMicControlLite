@@ -162,24 +162,12 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 	for (UINT i = 0; i < CountActiveDevices; i++)
 	{
 		TComPtr<IMMDevice> Device;
-		TComPtr<IPropertyStore> PropertyStore;
-		LPWSTR pwszID = nullptr;
-		
 		DevicesCollection->Item(i, &Device);
-		Device->GetId(&pwszID);
-		Device->OpenPropertyStore(STGM_READ, &PropertyStore);
 
-		PROPVARIANT nameDevice;
-		PropVariantInit(&nameDevice);
-		PropertyStore->GetValue(PKEY_Device_FriendlyName, &nameDevice);
+		const FString DeviceId = GetDeviceId(Device);
+		const FString DeviceName = GetDeviceName(Device);
 
-		ActiveDevices.Add(FString(WCHAR_TO_TCHAR(pwszID)));
-		ActiveDevices[FString(WCHAR_TO_TCHAR(pwszID))] = FString(WCHAR_TO_TCHAR(nameDevice.pwszVal));
-
-		PropVariantClear(&nameDevice);
-
-		CoTaskMemFree(pwszID);
-		pwszID = nullptr;
+		ActiveDevices.Add(DeviceId, DeviceName);
 	}
 #endif
 
