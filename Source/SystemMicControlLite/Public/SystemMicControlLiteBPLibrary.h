@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Set System Mic Volume For Device Id")
 	static void SetMicVolumeForDeviceId(const FString& DeviceId, float Volume);
 
+	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Set System Mic Volume For Device Name")
+	static void SetMicVolumeForDeviceName(const FString& DeviceName, float Volume);
+
 	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Volume")
 	static float GetMicVolume();
 

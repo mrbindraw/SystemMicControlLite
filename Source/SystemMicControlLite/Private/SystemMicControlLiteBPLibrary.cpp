@@ -41,6 +41,12 @@ void USystemMicControlLiteBPLibrary::SetMicVolumeForDeviceId(const FString& Devi
 	FSystemMicLiteManager::Get()->SetVolume(Volume, DeviceId);
 }
 
+void USystemMicControlLiteBPLibrary::SetMicVolumeForDeviceName(const FString& DeviceName, float Volume)
+{
+	const FString DeviceId = FSystemMicLiteManager::Get()->GetDeviceIdFromName(DeviceName);
+	FSystemMicLiteManager::Get()->SetVolume(Volume, DeviceId);
+}
+
 float USystemMicControlLiteBPLibrary::GetMicVolume()
 {
 	return FSystemMicLiteManager::Get()->GetVolume();
