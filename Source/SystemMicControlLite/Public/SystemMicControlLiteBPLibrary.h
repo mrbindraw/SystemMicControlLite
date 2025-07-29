@@ -36,7 +36,10 @@ public:
 	/** If DeviceId is empty then it will return volume value from the default device microphone in the system */
 	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Get System Mic Volume For Device Id")
 	static void GetMicVolumeForDeviceId(const FString& InDeviceId, float& OutVolume);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Get System Mic Volume For Device Name")
+	static void GetMicVolumeForDeviceName(const FString& InDeviceName, float& OutVolume);
+
 	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Active Devices")
 	static TMap<FString, FString> GetMicActiveDevices();
 };
