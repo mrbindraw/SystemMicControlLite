@@ -66,46 +66,25 @@ void FSystemMicLiteManager::DestroyInstance()
 	}
 }
 
-FString FSystemMicLiteManager::GetDefaultDeviceName()
+FString FSystemMicLiteManager::GetDefaultDeviceName() const
 {
-	return GetDeviceNameFromId(GetDefaultDeviceId());
-}
-
-FString FSystemMicLiteManager::GetDefaultDeviceId()
-{
-	FString DeviceIdStr;
-
 #if PLATFORM_WINDOWS
-	TComPtr<IMMDevice> Device = GetDevice();
-	if (!Device.IsValid())
-	{
-		return FString(TEXT(""));
-	}
-
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/dd371405(v=vs.85).aspx, see Return value!
-	TComPtr<IAudioEndpointVolume> AudioEndpointVolume = GetAudioEndpointVolume(Device);
-	if (!AudioEndpointVolume.IsValid())
-	{
-		return FString(TEXT(""));
-	}
-
-	WCHAR* swDeviceId = TCHAR_TO_WCHAR(TEXT(""));
-	HRESULT Result = Device->GetId(&swDeviceId);
-	if (Result != S_OK)
-	{
-		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, Device->GetId, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
-		return FString(TEXT(""));
-	}
-	DeviceIdStr = FString(WCHAR_TO_TCHAR(swDeviceId));
-
-	CoTaskMemFree(swDeviceId);
-	swDeviceId = nullptr;
+	return GetDeviceName(GetDevice());
+#else
+	return FString(TEXT(""));
 #endif
-
-	return DeviceIdStr;
 }
 
-FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName)
+FString FSystemMicLiteManager::GetDefaultDeviceId() const
+{
+#if PLATFORM_WINDOWS
+	return GetDeviceId(GetDevice());
+#else
+	return FString(TEXT(""));
+#endif
+}
+
+FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName) const
 {
 	FString DeviceId;
 
@@ -121,7 +100,7 @@ FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName)
 	return DeviceId;
 }
 
-FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId)
+FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId) const
 {
 	FString DeviceName;
 
@@ -137,7 +116,7 @@ FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId)
 	return DeviceName;
 }
 
-TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
+TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices() const
 {
 	TMap<FString, FString> ActiveDevices;
 
@@ -162,24 +141,12 @@ TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
 	for (UINT i = 0; i < CountActiveDevices; i++)
 	{
 		TComPtr<IMMDevice> Device;
-		TComPtr<IPropertyStore> PropertyStore;
-		LPWSTR pwszID = nullptr;
-		
 		DevicesCollection->Item(i, &Device);
-		Device->GetId(&pwszID);
-		Device->OpenPropertyStore(STGM_READ, &PropertyStore);
 
-		PROPVARIANT nameDevice;
-		PropVariantInit(&nameDevice);
-		PropertyStore->GetValue(PKEY_Device_FriendlyName, &nameDevice);
+		const FString DeviceId = GetDeviceId(Device);
+		const FString DeviceName = GetDeviceName(Device);
 
-		ActiveDevices.Add(FString(WCHAR_TO_TCHAR(pwszID)));
-		ActiveDevices[FString(WCHAR_TO_TCHAR(pwszID))] = FString(WCHAR_TO_TCHAR(nameDevice.pwszVal));
-
-		PropVariantClear(&nameDevice);
-
-		CoTaskMemFree(pwszID);
-		pwszID = nullptr;
+		ActiveDevices.Add(DeviceId, DeviceName);
 	}
 #endif
 
@@ -212,7 +179,7 @@ void FSystemMicLiteManager::SetVolume(float Value, const FString& DeviceId)
 #endif
 }
 
-float FSystemMicLiteManager::GetVolume(const FString& DeviceId)
+float FSystemMicLiteManager::GetVolume(const FString& DeviceId) const
 {
 	float MicVolume = 0.0f;
 
@@ -234,18 +201,18 @@ float FSystemMicLiteManager::GetVolume(const FString& DeviceId)
 	return GetValueFromScalar(MicVolume);
 }
 
-float FSystemMicLiteManager::GetScalarFromValue(int32 Value)
+float FSystemMicLiteManager::GetScalarFromValue(int32 Value) const
 {
 	return FMath::Abs(Value) >= 100.0f ? 1.0f : Value / 100.0f;
 }
 
-float FSystemMicLiteManager::GetValueFromScalar(float Value)
+float FSystemMicLiteManager::GetValueFromScalar(float Value) const
 {
 	return FMath::RoundToFloat(FMath::Abs(Value) > 0.0f ? Value * 100.0f : 0.0f);
 }
 
 #if PLATFORM_WINDOWS
-TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId)
+TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId) const
 {
 	TComPtr<IMMDevice> Device;
 	HRESULT Result = S_OK;
@@ -272,7 +239,51 @@ TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId)
 	return Device;
 }
 
-TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device)
+FString FSystemMicLiteManager::GetDeviceName(const TComPtr<IMMDevice>& Device) const
+{
+	if (!Device.IsValid())
+	{
+		return FString(TEXT(""));
+	}
+
+	TComPtr<IPropertyStore> PropertyStore;
+	Device->OpenPropertyStore(STGM_READ, &PropertyStore);
+
+	PROPVARIANT nameDevice;
+	PropVariantInit(&nameDevice);
+	PropertyStore->GetValue(PKEY_Device_FriendlyName, &nameDevice);
+
+	const FString DeviceName = FString(WCHAR_TO_TCHAR(nameDevice.pwszVal));
+
+	PropVariantClear(&nameDevice);
+
+	return DeviceName;
+}
+
+FString FSystemMicLiteManager::GetDeviceId(const TComPtr<IMMDevice>& Device) const
+{
+	if (!Device.IsValid())
+	{
+		return FString(TEXT(""));
+	}
+
+	WCHAR* swDeviceId = TCHAR_TO_WCHAR(TEXT(""));
+	HRESULT Result = Device->GetId(&swDeviceId);
+	if (Result != S_OK)
+	{
+		UE_LOG(LogSystemMicLiteManager, Warning, TEXT("Result != S_OK, Device->GetId, [%s], line: %d"), ANSI_TO_TCHAR(__FUNCTION__), __LINE__);
+		return FString(TEXT(""));
+	}
+
+	const FString DeviceId = FString(WCHAR_TO_TCHAR(swDeviceId));
+
+	CoTaskMemFree(swDeviceId);
+	swDeviceId = nullptr;
+
+	return DeviceId;
+}
+
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device) const
 {
 	if (!Device.IsValid())
 	{
@@ -290,7 +301,7 @@ TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(cons
 	return AudioEndpointVolume;
 }
 
-TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const FString& DeviceId)
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const FString& DeviceId) const
 {
 	TComPtr<IMMDevice> Device = GetDevice(DeviceId);
 	if (!Device.IsValid())

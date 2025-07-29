@@ -40,29 +40,31 @@ class FSystemMicLiteManager
 
 		void Init();
 		
-		FString GetDefaultDeviceName();
+		FString GetDefaultDeviceName() const;
 
-		FString GetDefaultDeviceId();
+		FString GetDefaultDeviceId() const;
 
-		FString GetDeviceIdFromName(const FString& DeviceName);
+		FString GetDeviceIdFromName(const FString& DeviceName) const;
 
-		FString GetDeviceNameFromId(const FString& DeviceId);
+		FString GetDeviceNameFromId(const FString& DeviceId) const;
 
-		TMap<FString, FString> GetActiveDevices();
+		TMap<FString, FString> GetActiveDevices() const;
 
 		void SetVolume(float Value, const FString& DeviceId = FString(TEXT("")));
 
-		float GetVolume(const FString& DeviceId = FString(TEXT("")));
+		float GetVolume(const FString& DeviceId = FString(TEXT(""))) const;
 
 	private:
-		FORCEINLINE float GetScalarFromValue(int32 Value);
+		FORCEINLINE float GetScalarFromValue(int32 Value) const;
 
-		FORCEINLINE float GetValueFromScalar(float Value);
+		FORCEINLINE float GetValueFromScalar(float Value) const;
 
 #if PLATFORM_WINDOWS
-		TComPtr<IMMDevice> GetDevice(const FString& DeviceId = FString(TEXT("")));
-		TComPtr<IAudioEndpointVolume> GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device);
-		TComPtr<IAudioEndpointVolume> GetAudioEndpointVolume(const FString& DeviceId = FString(TEXT("")));
+		TComPtr<IMMDevice> GetDevice(const FString& DeviceId = FString(TEXT(""))) const;
+		FString GetDeviceName(const TComPtr<IMMDevice>& Device) const;
+		FString GetDeviceId(const TComPtr<IMMDevice>& Device) const;
+		TComPtr<IAudioEndpointVolume> GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device) const;
+		TComPtr<IAudioEndpointVolume> GetAudioEndpointVolume(const FString& DeviceId = FString(TEXT(""))) const;
 #endif
 };
 
