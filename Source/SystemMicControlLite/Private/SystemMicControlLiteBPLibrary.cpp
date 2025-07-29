@@ -46,9 +46,9 @@ float USystemMicControlLiteBPLibrary::GetMicVolume()
 	return FSystemMicLiteManager::Get()->GetVolume();
 }
 
-float USystemMicControlLiteBPLibrary::GetMicVolumeForDeviceId(const FString& DeviceId)
+void USystemMicControlLiteBPLibrary::GetMicVolumeForDeviceId(const FString& InDeviceId, float& OutVolume)
 {
-	return FSystemMicLiteManager::Get()->GetVolume(DeviceId);
+	OutVolume = FSystemMicLiteManager::Get()->GetVolume(InDeviceId);
 }
 
 TMap<FString, FString> USystemMicControlLiteBPLibrary::GetMicActiveDevices()
