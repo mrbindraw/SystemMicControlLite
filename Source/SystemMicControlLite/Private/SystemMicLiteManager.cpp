@@ -66,7 +66,7 @@ void FSystemMicLiteManager::DestroyInstance()
 	}
 }
 
-FString FSystemMicLiteManager::GetDefaultDeviceName()
+FString FSystemMicLiteManager::GetDefaultDeviceName() const
 {
 #if PLATFORM_WINDOWS
 	return GetDeviceName(GetDevice());
@@ -75,7 +75,7 @@ FString FSystemMicLiteManager::GetDefaultDeviceName()
 #endif
 }
 
-FString FSystemMicLiteManager::GetDefaultDeviceId()
+FString FSystemMicLiteManager::GetDefaultDeviceId() const
 {
 #if PLATFORM_WINDOWS
 	return GetDeviceId(GetDevice());
@@ -84,7 +84,7 @@ FString FSystemMicLiteManager::GetDefaultDeviceId()
 #endif
 }
 
-FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName)
+FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName) const
 {
 	FString DeviceId;
 
@@ -100,7 +100,7 @@ FString FSystemMicLiteManager::GetDeviceIdFromName(const FString& DeviceName)
 	return DeviceId;
 }
 
-FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId)
+FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId) const
 {
 	FString DeviceName;
 
@@ -116,7 +116,7 @@ FString FSystemMicLiteManager::GetDeviceNameFromId(const FString& DeviceId)
 	return DeviceName;
 }
 
-TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices()
+TMap<FString, FString> FSystemMicLiteManager::GetActiveDevices() const
 {
 	TMap<FString, FString> ActiveDevices;
 
@@ -179,7 +179,7 @@ void FSystemMicLiteManager::SetVolume(float Value, const FString& DeviceId)
 #endif
 }
 
-float FSystemMicLiteManager::GetVolume(const FString& DeviceId)
+float FSystemMicLiteManager::GetVolume(const FString& DeviceId) const
 {
 	float MicVolume = 0.0f;
 
@@ -201,18 +201,18 @@ float FSystemMicLiteManager::GetVolume(const FString& DeviceId)
 	return GetValueFromScalar(MicVolume);
 }
 
-float FSystemMicLiteManager::GetScalarFromValue(int32 Value)
+float FSystemMicLiteManager::GetScalarFromValue(int32 Value) const
 {
 	return FMath::Abs(Value) >= 100.0f ? 1.0f : Value / 100.0f;
 }
 
-float FSystemMicLiteManager::GetValueFromScalar(float Value)
+float FSystemMicLiteManager::GetValueFromScalar(float Value) const
 {
 	return FMath::RoundToFloat(FMath::Abs(Value) > 0.0f ? Value * 100.0f : 0.0f);
 }
 
 #if PLATFORM_WINDOWS
-TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId)
+TComPtr<IMMDevice> FSystemMicLiteManager::GetDevice(const FString& DeviceId) const
 {
 	TComPtr<IMMDevice> Device;
 	HRESULT Result = S_OK;
@@ -283,7 +283,7 @@ FString FSystemMicLiteManager::GetDeviceId(const TComPtr<IMMDevice>& Device) con
 	return DeviceId;
 }
 
-TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device)
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const TComPtr<IMMDevice>& Device) const
 {
 	if (!Device.IsValid())
 	{
@@ -301,7 +301,7 @@ TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(cons
 	return AudioEndpointVolume;
 }
 
-TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const FString& DeviceId)
+TComPtr<IAudioEndpointVolume> FSystemMicLiteManager::GetAudioEndpointVolume(const FString& DeviceId) const
 {
 	TComPtr<IMMDevice> Device = GetDevice(DeviceId);
 	if (!Device.IsValid())
