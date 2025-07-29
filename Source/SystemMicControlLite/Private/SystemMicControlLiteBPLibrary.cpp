@@ -21,6 +21,11 @@ FString USystemMicControlLiteBPLibrary::GetMicDefaultDeviceName()
 	return FSystemMicLiteManager::Get()->GetDefaultDeviceName();
 }
 
+FString USystemMicControlLiteBPLibrary::GetMicDefaultDeviceId()
+{
+	return FSystemMicLiteManager::Get()->GetDefaultDeviceId();
+}
+
 void USystemMicControlLiteBPLibrary::GetMicDeviceIdFromName(const FString& InDeviceName, FString& OutDeviceId)
 {
 	OutDeviceId = FSystemMicLiteManager::Get()->GetDeviceIdFromName(InDeviceName);

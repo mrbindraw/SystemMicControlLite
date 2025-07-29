@@ -17,6 +17,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Default Device Name")
 	static FString GetMicDefaultDeviceName();
 
+	UFUNCTION(BlueprintPure, Category = "SystemMicControlLite", DisplayName = "Get System Mic Default Device Id")
+	static FString GetMicDefaultDeviceId();
+
 	UFUNCTION(BlueprintCallable, Category = "SystemMicControlLite", DisplayName = "Get System Mic Device Id From Name")
 	static void GetMicDeviceIdFromName(const FString& InDeviceName, FString& OutDeviceId);
 
